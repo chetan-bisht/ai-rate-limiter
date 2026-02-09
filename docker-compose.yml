@@ -1,0 +1,34 @@
+version: '3.8'
+services:
+  redis_cache:
+    image: redis:alpine
+    container_name: limiter_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - backend_network
+
+  main_db:
+    image: postgres:alpine  
+    container_name: limiter_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123  
+      POSTGRES_DB: limiter_db         
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+
+
+networks:
+  backend_network:
+    driver: bridge
+
+
+volumes:
+  pg_data:
