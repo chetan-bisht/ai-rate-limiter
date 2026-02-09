@@ -14,9 +14,9 @@ services:
     container_name: limiter_postgres
     restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password123  
-      POSTGRES_DB: limiter_db         
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
