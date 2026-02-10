@@ -1,10 +1,11 @@
 import express from 'express';
-
 import redis from './config/redis.js';
+import { rateLimiter } from './middleware/rateLimiter.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
+app.use(rateLimiter);
 
 app.get('/', async (req, res) => {
 
