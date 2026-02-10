@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Limiter Demo</title>
+  <style>
+    body { font-family: system-ui; background: #fafafa; color: #1a1a1a; display: grid; place-items: center; min-height: 100vh; margin: 0; }
+    .card { width: 400px; padding: 32px; background: #fff; border: 1px solid #eaeaea; border-radius: 12px; }
+    h1 { font-size: 20px; font-weight: 600; margin: 0 0 8px; }
+    p { font-size: 14px; color: #666; margin: 0 0 24px; }
+    .stats { display: grid; gap: 12px; margin-bottom: 24px; font-size: 13px; }
+    .stat { display: flex; justify-content: space-between; }
+    .stat b { color: #000; }
+    .actions { display: flex; gap: 8px; margin-bottom: 20px; }
+    button { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #000; background: #000; color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; }
+    button.alt { background: #fff; color: #000; }
+    button:hover { opacity: 0.8; }
+    pre { background: #f4f4f4; padding: 12px; border-radius: 6px; font-size: 11px; overflow-x: auto; margin: 0; border: 1px solid #eee; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Rate Limiter</h1>
+    <p>Limit: 10 req / 60s</p>
+    <div class="stats">
+      <div class="stat">Requests <b id="reqs">0</b></div>
+      <div class="stat">Remaining <b id="rem">10</b></div>
+      <div class="stat">Status <b id="status">Ready</b></div>
+    </div>
+    <div class="actions">
+      <button onclick="send()">Request</button>
+      <button class="alt" onclick="spam()">Spam</button>
+    </div>
+    <pre id="log"></pre>
+  </div>
+
+  <script>
+    let count = 0, timer = null;
+    const $ = id => document.getElementById(id);
+
+    async function send() {
+      try {
+        if (timer) { clearInterval(timer); timer = null; }
+        const res = await fetch('http://localhost:3001/');
+        const data = await res.json();
+
+        $('reqs').textContent = ++count;
+        $('rem').textContent = res.headers.get('X-RateLimit-Remaining') || '0';
+        $('log').style.display = 'block';
+
+        if (res.ok) {
+          $('status').textContent = 'OK';
+          $('log').textContent = JSON.stringify(data, null, 2);
+        } else {
+          let seconds = data.retry_after || 60;
+          const tick = () => {
+            $('status').textContent = `Try again in ${seconds}s`;
+            $('log').textContent = JSON.stringify({ ...data, retry_after: seconds }, null, 2);
+          };
+          tick();
+          timer = setInterval(() => {
+            if (--seconds <= 0) {
+              clearInterval(timer); timer = null;
+              $('status').textContent = 'Ready';
+            } else tick();
+          }, 1000);
+        }
+      } catch { $('status').textContent = 'Error'; }
+    }
+
+    async function spam() {
+      for (let i = 0; i < 12; i++) { await send(); await new Promise(r => setTimeout(r, 100)); }
+    }
+  </script>
+</body>
+</html>
